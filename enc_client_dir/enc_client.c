@@ -1,3 +1,12 @@
+/*
+Name: Jacob Eckroth
+Date: 3/8/2021
+Project Name: Assignment 4: Multi-threaded Producer Consumer Pipeline
+Description: This process takes input from the user in the form of ./enc_client plaintext key port
+**  It attempts to communicate with an enc_server running on that port and sends the data and key to it
+**  to do the encrypting. it then receives and prints out the encrypted text to stdout.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,45 +19,18 @@
 #include <stdbool.h>
 
 #include "../usefulFunctions.h"
+#include <assert.h>
 char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength);
 
 
-/**
-* Client code
-* 1. Create a socket and connect to the server specified in the command arugments.
-* 2. Prompt the user for input and send that input as a message to the server.
-* 3. Print the message received from the server and exit the program.
+
+
+
+/*
+** Description: This is the main function.... it runs the program... that's it
+** Prerequisites: command line arguments: ./enc_client plaintext key port
+** Updated/Returned: this is the main function of a program. Everything is very clearly well named. You got this I believe in you
 */
-
-
-
-// Set up the address struct
-void setupAddressStruct(struct sockaddr_in* address,
-    int portNumber,
-    char* hostname) {
-
-    // Clear out the address struct
-    memset((char*)address, '\0', sizeof(*address));
-
-    // The address should be network capable
-    address->sin_family = AF_INET;
-    // Store the port number
-    address->sin_port = htons(portNumber);
-
-    // Get the DNS entry for this host name
-    struct hostent* hostInfo = gethostbyname(hostname);
-    if (hostInfo == NULL) {
-        fprintf(stderr, "CLIENT: ERROR, no such host\n");
-        exit(0);
-    }
-    // Copy the first IP address from the DNS entry to sin_addr.s_addr
-    memcpy((char*)&address->sin_addr.s_addr,
-        hostInfo->h_addr_list[0],
-        hostInfo->h_length);
-}
-
-
-
 int main(int argc, char* argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
@@ -67,7 +49,7 @@ int main(int argc, char* argv[]) {
     char* fileName = argv[1];
     char* keyFileName = argv[2];
     // Set up the server address struct
-    setupAddressStruct(&serverAddress, atoi(argv[3]), "localhost");
+    setupAddressStructClient(&serverAddress, atoi(argv[3]), "localhost");
 
     // Connect to server
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
@@ -76,6 +58,7 @@ int main(int argc, char* argv[]) {
    
     int bufferLength;
     
+    //initializes the buffer to send to the server
     char* Fullbuffer = initializeSendBuffer(fileName,keyFileName,&bufferLength);
  
 
@@ -85,24 +68,22 @@ int main(int argc, char* argv[]) {
     sendMessage(0, bufferLength, Fullbuffer, "CLIENT: ERROR writing to socket", socketFD, 0);
  
     
+    //receives the length of the buffer being sent
     char dataReceivingLength[4];
-    
- 
     receiveMessage(0, 4, dataReceivingLength, "CLIENT: ERROR reading from socket", socketFD, 0);
-
     int amountOfCharacters = getBinaryNumber(dataReceivingLength);
-    if (amountOfCharacters == 0) {
+    
+    if (amountOfCharacters == 0) {  //if the server sends back a 0, then it is an invalid connection
         fprintf(stderr, "Error: Could not contact enc_server on port %d\n",atoi(argv[3]));
         exit(2);
     }
     else {
     
+        //receive the encrypted text buffer
         char* encryptedText = malloc(amountOfCharacters);
-
         receiveMessage(0, amountOfCharacters, encryptedText, "CLIENT: ERROR reading from socket", socketFD, 0);
-    
-  
         printf("%s\n",encryptedText);
+        
         free(encryptedText);
     }
     
@@ -112,9 +93,18 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+/*
+** Description: Initializes and returns the buffer to be sent to the server based on the 2 files
+** Prerequisites: fileName and keyFileName are allocated
+** Updated/Returned: Returns the buffer to be sent to the user
+*/
 
+//1st byte of buffer is '1' to indicate it's from enc_client. Next 4 bytes are binary number of bytes in the rest of the buffer.
+//then the text from the cypher Key, then a null terminator, then the encrypted text, then a null terminator.
 char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength) {
-  
+    assert(fileName);
+    assert(keyFileName);
+    assert(bufferLength);
    
 
     char* plainTextContents = getContentsOfFile(fileName);
@@ -135,11 +125,12 @@ char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength)
         exit(1);
     }
     
-    //
+    //first byte is '1', next 4 are length of the following buffer, and 1 after each string for the null terminator
     int lengthOfMessage = 1+ 4+strlen(cypherContents) + 1+ strlen(plainTextContents) + 1;
    
     char* newMessage = malloc(sizeof(char) * lengthOfMessage);
     
+    //creates the binary number string of how many messages are being sent.
     char* numberStr = createNumberString(lengthOfMessage - 5);
  
 

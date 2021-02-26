@@ -1,3 +1,12 @@
+/*
+Name: Jacob Eckroth
+Date: 3/8/2021
+Project Name: Assignment 4: Multi-threaded Producer Consumer Pipeline
+Description: This process takes input from the user in the form of ./dec_client encryptedtext key port
+**  It attempts to communicate with an dec_server running on that port and sends the data and key to it
+**  to do the decrypting. it then receives and prints out the decrypted text to stdout.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,44 +18,16 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include "../usefulFunctions.h"
+#include <assert.h>
 
 char* initializeSendBuffer(char* fileName, char* keyFileName, int*);
 
 
-/**
-* Client code
-* 1. Create a socket and connect to the server specified in the command arugments.
-* 2. Prompt the user for input and send that input as a message to the server.
-* 3. Print the message received from the server and exit the program.
+/*
+** Description: This is the main function.... it runs the program... that's it
+** Prerequisites: command line arguments: ./enc_client encryptedtext key port
+** Updated/Returned: this is the main function of a program. Everything is very clearly well named. You got this I believe in you
 */
-
-
-
-// Set up the address struct
-void setupAddressStruct(struct sockaddr_in* address,
-    int portNumber,
-    char* hostname) {
-
-    // Clear out the address struct
-    memset((char*)address, '\0', sizeof(*address));
-
-    // The address should be network capable
-    address->sin_family = AF_INET;
-    // Store the port number
-    address->sin_port = htons(portNumber);
-
-    // Get the DNS entry for this host name
-    struct hostent* hostInfo = gethostbyname(hostname);
-    if (hostInfo == NULL) {
-        fprintf(stderr, "CLIENT: ERROR, no such host\n");
-        exit(0);
-    }
-    // Copy the first IP address from the DNS entry to sin_addr.s_addr
-    memcpy((char*)&address->sin_addr.s_addr,
-        hostInfo->h_addr_list[0],
-        hostInfo->h_length);
-}
-
 int main(int argc, char* argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
@@ -65,7 +46,7 @@ int main(int argc, char* argv[]) {
     char* fileName = argv[1];
     char* keyFileName = argv[2];
     // Set up the server address struct
-    setupAddressStruct(&serverAddress, atoi(argv[3]), "localhost");
+    setupAddressStructClient(&serverAddress, atoi(argv[3]), "localhost");
 
     // Connect to server
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
@@ -74,31 +55,26 @@ int main(int argc, char* argv[]) {
 
     int bufferLength;
 
+    //initializes the buffer we will send to the server.
     char* Fullbuffer = initializeSendBuffer(fileName, keyFileName, &bufferLength);
 
 
-    // Send message to server
-    // Write to the server
-   
-
     sendMessage(0, bufferLength, Fullbuffer, "CLIENT: ERROR writing to socket", socketFD, 0);
 
+
     char dataReceivingLength[4];
-
-
     receiveMessage(0, 4, dataReceivingLength, "CLIENT: ERROR reading from socket", socketFD, 0);
-
     int amountOfCharacters = getBinaryNumber(dataReceivingLength);
+
     if (amountOfCharacters == 0) {
         fprintf(stderr, "Error: Could not contact dec_server on port %d\n", atoi(argv[3]));
         exit(2);
     }
     else {
         char* decryptedText = malloc(amountOfCharacters);
- 
         receiveMessage(0, amountOfCharacters, decryptedText, "CLIENT: ERROR reading from socket", socketFD, 0);
-
         printf("%s\n", decryptedText);
+
         free(decryptedText);
     }
 
@@ -109,8 +85,18 @@ int main(int argc, char* argv[]) {
 }
 
 
-char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength) {
+/*
+** Description: Initializes and returns the buffer to be sent to the server based on the 2 files
+** Prerequisites: fileName and keyFileName are allocated
+** Updated/Returned: Returns the buffer to be sent to the user
+*/
 
+//1st byte of buffer is '2' to indicate it's from dec_client. Next 4 bytes are binary number of bytes in the rest of the buffer.
+//then the text from the cypher Key, then a null terminator, then the encrypted text, then a null terminator.
+char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength) {
+    assert(fileName);
+    assert(keyFileName);
+    assert(bufferLength);
 
 
     char* encryptedTextContents = getContentsOfFile(fileName);
