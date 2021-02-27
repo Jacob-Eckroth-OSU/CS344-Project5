@@ -55,6 +55,7 @@ int main(int argc, char* argv[]) {
         (struct sockaddr*)&serverAddress,
         sizeof(serverAddress)) < 0) {
         error("ERROR on binding");
+        exit(1);
     }
 
     // Start listening for connections. Allow up to 5 connections to queue up
