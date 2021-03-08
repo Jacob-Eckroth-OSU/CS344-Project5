@@ -166,9 +166,11 @@ void sendMessage(int initialIndex, int finalIndex, char* sendMessage, const char
     int charsRead;
     int sendSize;
     while (initialIndex < finalIndex) {
+	    
+	    //if the amount of characters left to send is greater than the max send size for the socket
 	    if(finalIndex - initialIndex > MAX_SEND_SIZE){
 		    sendSize = MAX_SEND_SIZE;
-	    }else{
+	    }else{		//otherwise we're just sending the remaining characters
 		    sendSize = finalIndex - initialIndex;
 	    }
         charsRead = send(sockFD, sendMessage + initialIndex, sendSize /*finalIndex - initialIndex*/, flags);
