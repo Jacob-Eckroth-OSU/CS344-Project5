@@ -11,6 +11,8 @@
 #include <netdb.h>      // gethostbyname()
 #include <assert.h>
 
+#define MAX_SEND_SIZE 1024
+
 // Error function used for reporting issues
 void error(const char* msg) {
     perror(msg);
@@ -150,6 +152,9 @@ void receiveMessage(int initialIndex, int finalIndex, char* storeLocation, const
     }
 }
 
+
+
+
 /*
 ** Description: Sends a message through a socket, of a given length.
 ** Prerequisites: error message is allocated, message being sent is allocated
@@ -159,8 +164,14 @@ void sendMessage(int initialIndex, int finalIndex, char* sendMessage, const char
     assert(errorMessage);
     assert(sendMessage);
     int charsRead;
+    int sendSize;
     while (initialIndex < finalIndex) {
-        charsRead = send(sockFD, sendMessage + initialIndex, finalIndex - initialIndex, flags);
+	    if(finalIndex - initialIndex > MAX_SEND_SIZE){
+		    sendSize = MAX_SEND_SIZE;
+	    }else{
+		    sendSize = finalIndex - initialIndex;
+	    }
+        charsRead = send(sockFD, sendMessage + initialIndex, sendSize /*finalIndex - initialIndex*/, flags);
         if (charsRead < 0) {
             error(errorMessage);
         }

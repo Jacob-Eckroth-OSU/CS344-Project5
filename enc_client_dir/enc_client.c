@@ -32,7 +32,7 @@ char* initializeSendBuffer(char* fileName, char* keyFileName, int* bufferLength)
 ** Updated/Returned: this is the main function of a program. Everything is very clearly well named. You got this I believe in you
 */
 int main(int argc, char* argv[]) {
-    int socketFD, portNumber, charsWritten, charsRead;
+    int socketFD;
     struct sockaddr_in serverAddress;
    
     // Check usage & args

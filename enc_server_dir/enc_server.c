@@ -28,7 +28,7 @@ void dealWithClient(int socket);
 ** Updated/Returned: this is the main function of a program. Everything is very clearly well named. You got this I believe in you
 */
 int main(int argc, char* argv[]) {
-    int connectionSocket, charsRead;
+    int connectionSocket;
 
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
